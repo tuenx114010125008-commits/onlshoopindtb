@@ -1,0 +1,126 @@
+// ============================================================
+// BÀI TẬP CÁ NHÂN: DATABASE DESIGN & SQL
+// ĐỀ TÀI: HỆ THỐNG BÁN HÀNG ONLINE (ONLINE SHOPPING SYSTEM)
+// FILE: erd/schema.dbml
+// HƯỚNG DẪN: Copy toàn bộ nội dung file này và paste vào https://dbdiagram.io
+// ============================================================
+
+Project online_shopping_database {
+  database_type: 'MySQL'
+  Note: 'Hệ thống quản lý bán hàng online chuẩn 3NF (MySQL InnoDB)'
+}
+
+Table customer {
+  customer_id integer [pk, increment, note: 'Khóa chính']
+  full_name varchar(100) [not null]
+  email varchar(100) [unique, not null]
+  phone varchar(20) [unique]
+  password_hash varchar(255) [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  status varchar(20) [default: 'active']
+  deleted_at timestamp [null, note: 'Soft delete']
+
+  Note: 'Quản lý thông tin tài khoản khách hàng'
+}
+
+Table category {
+  category_id integer [pk, increment, note: 'Khóa chính']
+  category_name varchar(100) [unique, not null]
+  description text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Note: 'Danh mục sản phẩm'
+}
+
+Table product {
+  product_id integer [pk, increment, note: 'Khóa chính']
+  category_id integer [not null, note: 'FK -> category']
+  product_name varchar(150) [not null]
+  description text
+  price numeric(12,2) [not null, note: '>= 0']
+  stock_quantity integer [not null, note: '>= 0']
+  status varchar(20) [default: 'active']
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+  deleted_at timestamp [null, note: 'Soft delete']
+
+  Note: 'Thông tin chi tiết sản phẩm'
+}
+
+Table inventory {
+  inventory_id integer [pk, increment, note: 'Khóa chính']
+  product_id integer [unique, not null, note: 'FK -> product (Quan hệ 1:1)']
+  quantity integer [not null, note: '>= 0']
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Note: 'Tồn kho sản phẩm (Quan hệ 1:1 với product)'
+}
+
+Table orders {
+  order_id integer [pk, increment, note: 'Khóa chính']
+  customer_id integer [not null, note: 'FK -> customer']
+  order_date timestamp [default: `CURRENT_TIMESTAMP`]
+  status varchar(20) [default: 'pending', note: 'pending, processing, shipped, delivered, cancelled']
+  total_amount numeric(12,2) [not null, note: '>= 0']
+  shipping_address text [not null]
+
+  Note: 'Đơn đặt hàng từ khách hàng'
+}
+
+Table order_item {
+  order_item_id integer [pk, increment, note: 'Khóa chính']
+  order_id integer [not null, note: 'FK -> orders']
+  product_id integer [not null, note: 'FK -> product']
+  quantity integer [not null, note: '> 0']
+  unit_price numeric(12,2) [not null, note: '>= 0']
+  subtotal numeric(12,2) [not null, note: '>= 0']
+
+  Note: 'Chi tiết sản phẩm từng đơn hàng (Quan hệ N:N giữa orders và product)'
+}
+
+Table payment {
+  payment_id integer [pk, increment, note: 'Khóa chính']
+  order_id integer [unique, not null, note: 'FK -> orders (Quan hệ 1:1)']
+  payment_method varchar(50) [not null, note: 'Credit Card, Bank Transfer, COD, E-Wallet']
+  payment_status varchar(20) [default: 'pending', note: 'pending, completed, failed, refunded']
+  amount numeric(12,2) [not null, note: '>= 0']
+  paid_at timestamp [null]
+  transaction_code varchar(100) [unique]
+
+  Note: 'Thông tin thanh toán đơn hàng (Quan hệ 1:1 với orders)'
+}
+
+Table audit_log {
+  audit_id integer [pk, increment]
+  table_name varchar(50) [not null]
+  action varchar(20) [not null]
+  record_id integer
+  old_value jsonb
+  new_value jsonb
+  changed_by varchar(50)
+  changed_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Note: 'Ghi nhật ký thay đổi dữ liệu (Bonus)'
+}
+
+// ============================================================
+// KHAI BÁO CÁC MỐI QUAN HỆ (RELATIONSHIPS)
+// ============================================================
+
+// 1. Category 1 --- N Product
+Ref: category.category_id < product.category_id
+
+// 2. Product 1 --- 1 Inventory
+Ref: product.product_id - inventory.product_id
+
+// 3. Customer 1 --- N Orders
+Ref: customer.customer_id < orders.customer_id
+
+// 4. Orders 1 --- N Order_Item
+Ref: orders.order_id < order_item.order_id
+
+// 5. Product 1 --- N Order_Item
+Ref: product.product_id < order_item.product_id
+
+// 6. Orders 1 --- 1 Payment
+Ref: orders.order_id - payment.order_id

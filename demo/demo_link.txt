@@ -1,0 +1,56 @@
+============================================================
+BÀI TẬP CÁ NHÂN: DATABASE DESIGN & SQL
+ĐỀ TÀI: HỆ THỐNG BÁN HÀNG ONLINE (ONLINE SHOPPING SYSTEM)
+FILE: demo/demo_link.txt
+HỆ THỐNG: MySQL 8.0+ (InnoDB Engine)
+============================================================
+
+1. LINK VIDEO DEMO (>= 2 PHÚT)
+------------------------------------------------------------
+- YouTube URL: [Điền đường link YouTube của bạn tại đây, ví dụ: https://youtu.be/...]
+- Google Drive URL (Dự phòng): [Điền đường link Google Drive chia sẻ quyền Anyone with the link can view]
+- GitHub Repository: [Điền URL GitHub repo của bạn tại đây]
+
+------------------------------------------------------------
+2. KỊCH BẢN THUYẾT MINH VIDEO DEMO (TỔNG THỜI LƯỢNG: 2 - 3 PHÚT)
+------------------------------------------------------------
+
+0:00 - 0:20 | PHẦN 1: GIỚI THIỆU BẢN THÂN & ĐỀ TÀI
+- Lời thoại: "Xin chào thầy cô và các bạn. Em tên là [Họ và tên], mã số học viên [Mã số], lớp [Tên lớp]. Hôm nay em xin phép trình bày bài tập cá nhân môn Database Design & SQL với đề tài Hệ thống quản lý bán hàng online (Online Shopping System) trên hệ quản trị cơ sở dữ liệu MySQL (InnoDB Engine)."
+
+0:20 - 0:45 | PHẦN 2: TỔNG QUAN ERD & MÔ HÌNH DỮ LIỆU CHUẨN 3NF
+- Thao tác: Mở file ảnh `erd/online_shopping_erd.png` hoặc trang dbdiagram.io.
+- Lời thoại: "Hệ thống gồm 7 bảng thực thể cốt lõi đã được chuẩn hóa đến 3NF:
+  1. customer: Quản lý tài khoản khách hàng.
+  2. category & product: Phân loại danh mục và thông tin sản phẩm.
+  3. inventory: Tách rời theo dõi tồn kho độc lập (quan hệ 1:1 với product).
+  4. orders & order_item: Quản lý giỏ hàng/đơn hàng và các sản phẩm chi tiết (giải quyết quan hệ nhiều - nhiều).
+  5. payment: Quản lý giao dịch thanh toán đơn hàng (quan hệ 1:1 với orders)."
+
+0:45 - 1:10 | PHẦN 3: DEMO SELECT & JOIN CƠ BẢN ĐẾN TRUNG BÌNH
+- Thao tác: Mở MySQL Workbench / DBeaver / phpMyAdmin, chạy Q01, Q02, Q03.
+- Lời thoại: "Em xin phép demo các câu truy vấn SQL:
+  - Q01: Tìm 10 sản phẩm có giá bán cao nhất đang active.
+  - Q02: INNER JOIN hiển thị sản phẩm kèm tên danh mục.
+  - Q03: LEFT JOIN hiển thị toàn bộ khách hàng và số đơn hàng đã đặt, kể cả những khách hàng chưa từng mua hàng."
+
+1:10 - 1:30 | PHẦN 4: DEMO GROUP BY & AGGREGATE FUNCTION
+- Thao tác: Chạy Q04, Q05, Q06.
+- Lời thoại: "Tiếp theo là các hàm tổng hợp:
+  - Q04 & Q05: Thống kê tổng số lượng sản phẩm theo danh mục và tổng doanh thu thu được theo từng khách hàng.
+  - Q06: Tính giá trung bình, giá rẻ nhất và giá cao nhất của các sản phẩm đang kinh doanh."
+
+1:30 - 1:50 | PHẦN 5: DEMO SUBQUERY, WINDOW FUNCTION & CASE WHEN
+- Thao tác: Chạy Q07, Q08, Q09.
+- Lời thoại: "Ở mức nâng cao hơn:
+  - Q07: Subquery lọc các sản phẩm có giá vượt giá trung bình.
+  - Q08: Window Function DENSE_RANK() xếp hạng mức độ bán chạy của sản phẩm theo doanh thu.
+  - Q09: Phân loại khách hàng VIP, Regular và Normal bằng mệnh đề CASE WHEN."
+
+1:50 - 2:15 | PHẦN 6: DEMO CTE & PAGINATION
+- Thao tác: Chạy Q12 và Q13.
+- Lời thoại: "Q12 thực hiện phân trang sản phẩm với LIMIT và OFFSET; Q13 ứng dụng CTE (Common Table Expression) để tính toán nhóm khách hàng đạt doanh thu cao."
+
+2:15 - HẾT | PHẦN 7: DEMO TÍNH NĂNG NÂNG CAO (BONUS) & KẾT THÚC
+- Thao tác: Chạy demo trigger tự động tính subtotal (`sql/08_triggers.sql`) hoặc view `v_order_summary` (`sql/06_views.sql`) hoặc EXPLAIN ANALYZE (`sql/09_bonus.sql`).
+- Lời thoại: "Ngoài ra, em đã triển khai trigger tự tính thành tiền, view tổng hợp đơn hàng, và tối ưu index với EXPLAIN ANALYZE trên MySQL. Em xin chân thành cảm ơn thầy cô đã theo dõi phần trình bày!"

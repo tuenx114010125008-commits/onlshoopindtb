@@ -1,0 +1,1040 @@
+BÀI TẬP CÁ NHÂN: DATABASE DESIGN & SQL
+ĐỀ TÀI: HỆ THỐNG BÁN HÀNG ONLINE
+
+============================================================
+1. THÔNG TIN ĐỀ TÀI
+============================================================
+
+Tên đề tài:
+Hệ thống quản lý bán hàng online (Online Shopping Management System)
+
+Mục tiêu:
+- Thiết kế một cơ sở dữ liệu hoàn chỉnh cho hệ thống bán hàng online.
+- Quản lý khách hàng, sản phẩm, danh mục, đơn hàng, chi tiết đơn hàng,
+  thanh toán và các thông tin liên quan.
+- Đảm bảo database được chuẩn hóa đến 3NF.
+- Xây dựng các query SQL từ cơ bản đến nâng cao.
+- Áp dụng index, view, stored procedure và trigger.
+- Có thể mở rộng thêm transaction, audit log, soft delete và tối ưu query.
+
+Database dự kiến:
+PostgreSQL
+
+Công cụ:
+- PostgreSQL
+- pgAdmin hoặc DBeaver
+- dbdiagram.io để thiết kế ERD
+- Git / GitHub
+- VS Code
+
+============================================================
+2. PHẠM VI HỆ THỐNG
+============================================================
+
+Hệ thống cho phép:
+
+1. Quản lý khách hàng.
+2. Quản lý danh mục sản phẩm.
+3. Quản lý sản phẩm.
+4. Quản lý đơn hàng.
+5. Quản lý các sản phẩm trong từng đơn hàng.
+6. Quản lý thanh toán.
+7. Theo dõi trạng thái đơn hàng.
+8. Theo dõi tồn kho.
+9. Thống kê doanh thu và tình hình bán hàng.
+
+Các đối tượng chính:
+- Customer
+- Category
+- Product
+- Inventory
+- Orders
+- Order_Item
+- Payment
+- Có thể mở rộng thêm Address / Review / Audit_Log nếu cần.
+
+============================================================
+3. THIẾT KẾ DATABASE DỰ KIẾN
+============================================================
+
+3.1. CUSTOMER
+
+Mục đích:
+Lưu thông tin khách hàng.
+
+Các thuộc tính dự kiến:
+- customer_id       PK
+- full_name         NOT NULL
+- email             NOT NULL, UNIQUE
+- phone             UNIQUE
+- password_hash     NOT NULL
+- created_at        DEFAULT CURRENT_TIMESTAMP
+- status            DEFAULT 'active'
+
+Quan hệ:
+- Một customer có thể có nhiều order.
+- CUSTOMER 1 --- N ORDERS
+
+------------------------------------------------------------
+
+3.2. CATEGORY
+
+Mục đích:
+Quản lý danh mục sản phẩm.
+
+Các thuộc tính dự kiến:
+- category_id       PK
+- category_name     NOT NULL, UNIQUE
+- description
+- created_at
+
+Quan hệ:
+- Một category có nhiều product.
+- CATEGORY 1 --- N PRODUCT
+
+------------------------------------------------------------
+
+3.3. PRODUCT
+
+Mục đích:
+Quản lý thông tin sản phẩm.
+
+Các thuộc tính dự kiến:
+- product_id        PK
+- category_id       FK
+- product_name      NOT NULL
+- description
+- price             NOT NULL, CHECK (price >= 0)
+- stock_quantity    NOT NULL, CHECK (stock_quantity >= 0)
+- status            DEFAULT 'active'
+- created_at
+- updated_at
+
+Quan hệ:
+- Một product thuộc một category.
+- Một category có nhiều product.
+- PRODUCT 1 --- N ORDER_ITEM
+- PRODUCT 1 --- 1 INVENTORY (nếu sử dụng bảng Inventory riêng)
+
+------------------------------------------------------------
+
+3.4. INVENTORY
+
+Mục đích:
+Quản lý tồn kho sản phẩm.
+
+Các thuộc tính dự kiến:
+- inventory_id      PK
+- product_id        FK, UNIQUE
+- quantity          NOT NULL, CHECK (quantity >= 0)
+- updated_at
+
+Quan hệ:
+- PRODUCT 1 --- 1 INVENTORY
+
+Lý do tách Inventory:
+Thông tin tồn kho được tách khỏi Product để dễ mở rộng hệ thống
+và minh họa quan hệ 1-1.
+
+------------------------------------------------------------
+
+3.5. ORDERS
+
+Mục đích:
+Lưu thông tin đơn hàng.
+
+Các thuộc tính dự kiến:
+- order_id          PK
+- customer_id       FK
+- order_date        DEFAULT CURRENT_TIMESTAMP
+- status            DEFAULT 'pending'
+- total_amount      NOT NULL, CHECK (total_amount >= 0)
+- shipping_address  NOT NULL
+
+Quan hệ:
+- Một customer có nhiều order.
+- CUSTOMER 1 --- N ORDERS
+- Một order có nhiều order_item.
+- ORDERS 1 --- N ORDER_ITEM
+- Một order có thể có một payment.
+- ORDERS 1 --- 1 PAYMENT
+
+------------------------------------------------------------
+
+3.6. ORDER_ITEM
+
+Mục đích:
+Lưu các sản phẩm thuộc từng đơn hàng.
+
+Các thuộc tính dự kiến:
+- order_item_id     PK
+- order_id          FK
+- product_id        FK
+- quantity          NOT NULL, CHECK (quantity > 0)
+- unit_price        NOT NULL, CHECK (unit_price >= 0)
+- subtotal          NOT NULL, CHECK (subtotal >= 0)
+
+Ràng buộc dự kiến:
+- UNIQUE(order_id, product_id)
+
+Quan hệ:
+- ORDERS 1 --- N ORDER_ITEM
+- PRODUCT 1 --- N ORDER_ITEM
+
+Đây là bảng trung gian giúp giải quyết quan hệ N-N giữa:
+ORDERS và PRODUCT.
+
+------------------------------------------------------------
+
+3.7. PAYMENT
+
+Mục đích:
+Quản lý thông tin thanh toán.
+
+Các thuộc tính dự kiến:
+- payment_id        PK
+- order_id          FK, UNIQUE
+- payment_method    NOT NULL
+- payment_status    DEFAULT 'pending'
+- amount            NOT NULL, CHECK (amount >= 0)
+- paid_at
+- transaction_code  UNIQUE
+
+Quan hệ:
+- ORDERS 1 --- 1 PAYMENT
+
+============================================================
+4. MÔ HÌNH QUAN HỆ TỔNG QUÁT
+============================================================
+
+CUSTOMER
+    |
+    | 1:N
+    v
+ORDERS
+    |
+    | 1:N
+    v
+ORDER_ITEM
+    ^
+    |
+    | N:1
+    |
+PRODUCT <---- N:1 ---- CATEGORY
+    |
+    | 1:1
+    v
+INVENTORY
+
+ORDERS
+    |
+    | 1:1
+    v
+PAYMENT
+
+Quan hệ chính:
+
+CUSTOMER 1 --- N ORDERS
+CATEGORY 1 --- N PRODUCT
+PRODUCT 1 --- 1 INVENTORY
+ORDERS 1 --- N ORDER_ITEM
+PRODUCT 1 --- N ORDER_ITEM
+ORDERS 1 --- 1 PAYMENT
+
+Quan hệ N-N:
+ORDERS N --- N PRODUCT
+
+Được giải quyết bằng bảng:
+ORDER_ITEM
+
+============================================================
+5. CHUẨN HÓA ĐẾN 3NF
+============================================================
+
+5.1. First Normal Form (1NF)
+
+- Mỗi ô dữ liệu chỉ chứa một giá trị nguyên tử.
+- Không lưu nhiều sản phẩm trong một cột của Orders.
+- Không lưu danh sách product_id dạng "1,2,3".
+- Các sản phẩm của đơn hàng được lưu riêng trong ORDER_ITEM.
+
+5.2. Second Normal Form (2NF)
+
+- Các bảng có khóa chính rõ ràng.
+- Các thuộc tính không khóa phụ thuộc đầy đủ vào khóa chính.
+- Thông tin product được lưu trong PRODUCT thay vì lặp lại trong ORDER_ITEM.
+- Thông tin customer được lưu trong CUSTOMER thay vì lặp lại trong ORDERS.
+
+5.3. Third Normal Form (3NF)
+
+- Không lưu các thuộc tính phụ thuộc gián tiếp vào khóa chính.
+- category_name nằm trong CATEGORY thay vì PRODUCT.
+- customer information nằm trong CUSTOMER thay vì ORDERS.
+- payment information nằm trong PAYMENT thay vì ORDERS.
+
+============================================================
+6. CONSTRAINT DỰ KIẾN
+============================================================
+
+PRIMARY KEY:
+- customer_id
+- category_id
+- product_id
+- inventory_id
+- order_id
+- order_item_id
+- payment_id
+
+FOREIGN KEY:
+- product.category_id -> category.category_id
+- inventory.product_id -> product.product_id
+- orders.customer_id -> customer.customer_id
+- order_item.order_id -> orders.order_id
+- order_item.product_id -> product.product_id
+- payment.order_id -> orders.order_id
+
+UNIQUE:
+- customer.email
+- customer.phone
+- category.category_name
+- inventory.product_id
+- payment.order_id
+- payment.transaction_code
+- order_item(order_id, product_id)
+
+CHECK:
+- product.price >= 0
+- product.stock_quantity >= 0
+- inventory.quantity >= 0
+- order_item.quantity > 0
+- order_item.unit_price >= 0
+- order_item.subtotal >= 0
+- orders.total_amount >= 0
+- payment.amount >= 0
+
+DEFAULT:
+- created_at = CURRENT_TIMESTAMP
+- order_date = CURRENT_TIMESTAMP
+- customer.status = 'active'
+- product.status = 'active'
+- orders.status = 'pending'
+- payment.payment_status = 'pending'
+
+============================================================
+7. DỮ LIỆU MẪU
+============================================================
+
+Yêu cầu:
+Mỗi bảng có ít nhất 10-20 bản ghi.
+
+Dự kiến:
+
+CUSTOMER:
+20 records
+
+CATEGORY:
+10 records
+
+PRODUCT:
+20 records
+
+INVENTORY:
+20 records
+
+ORDERS:
+20 records
+
+ORDER_ITEM:
+30-40 records
+
+PAYMENT:
+20 records
+
+Dữ liệu nên được thiết kế sao cho có:
+- Khách hàng mua nhiều đơn.
+- Có sản phẩm bán chạy và sản phẩm bán ít.
+- Có category có nhiều sản phẩm.
+- Có đơn hàng nhiều sản phẩm.
+- Có đơn hàng chưa thanh toán.
+- Có đơn hàng đã thanh toán.
+- Có sản phẩm tồn kho thấp.
+- Có một số khách hàng chưa từng đặt hàng.
+
+Điều này giúp viết các query nâng cao dễ dàng hơn.
+
+============================================================
+8. INDEX DỰ KIẾN
+============================================================
+
+Ít nhất 2 index.
+
+Index 1:
+- INDEX trên orders(customer_id)
+Mục đích:
+Tăng tốc truy vấn tìm đơn hàng của một khách hàng.
+
+Index 2:
+- INDEX trên product(category_id)
+Mục đích:
+Tăng tốc truy vấn tìm sản phẩm theo danh mục.
+
+Có thể bổ sung:
+
+- INDEX trên orders(order_date)
+- INDEX trên product(price)
+- INDEX trên orders(status)
+- INDEX trên order_item(product_id)
+
+Phần bonus sẽ sử dụng EXPLAIN ANALYZE để so sánh query
+trước và sau khi tạo index.
+
+============================================================
+9. VIEW DỰ KIẾN
+============================================================
+
+VIEW: order_summary
+
+Mục đích:
+Hiển thị thông tin tổng hợp của đơn hàng.
+
+Các thông tin dự kiến:
+- order_id
+- customer_name
+- order_date
+- order_status
+- total_amount
+- payment_status
+
+View giúp đơn giản hóa những truy vấn thường xuyên sử dụng
+nhiều bảng JOIN.
+
+============================================================
+10. STORED PROCEDURE / FUNCTION DỰ KIẾN
+============================================================
+
+Dự kiến sử dụng PostgreSQL function/procedure.
+
+Chức năng:
+Tạo đơn hàng hoặc thêm sản phẩm vào đơn hàng.
+
+Một hướng triển khai:
+
+create_order(
+    customer_id,
+    product_id,
+    quantity
+)
+
+Logic:
+1. Kiểm tra customer tồn tại.
+2. Kiểm tra product tồn tại.
+3. Kiểm tra tồn kho.
+4. Tạo order.
+5. Thêm order_item.
+6. Tính subtotal.
+7. Cập nhật tồn kho.
+8. Trả về order_id.
+
+Nếu triển khai procedure phức tạp, cần đảm bảo transaction
+và xử lý lỗi phù hợp.
+
+============================================================
+11. TRIGGER DỰ KIẾN
+============================================================
+
+Trigger 1:
+Tự động cập nhật subtotal trong ORDER_ITEM.
+
+Công thức:
+
+subtotal = quantity * unit_price
+
+Hoặc trigger cập nhật tồn kho sau khi thêm ORDER_ITEM.
+
+Trigger 2 (bonus):
+Tự động cập nhật updated_at khi PRODUCT hoặc INVENTORY thay đổi.
+
+Có thể chọn 1 trigger bắt buộc và thêm trigger thứ 2 nếu có thời gian.
+
+============================================================
+12. 10+ QUERY BẮT BUỘC
+============================================================
+
+Q01 - SELECT cơ bản
+Mục đích:
+Tìm các sản phẩm đang active, sắp xếp theo giá giảm dần,
+giới hạn 10 sản phẩm.
+
+Yêu cầu:
+SELECT + WHERE + ORDER BY + LIMIT
+
+------------------------------------------------------------
+
+Q02 - INNER JOIN
+Mục đích:
+Hiển thị sản phẩm cùng tên danh mục.
+
+Yêu cầu:
+INNER JOIN giữa PRODUCT và CATEGORY.
+
+------------------------------------------------------------
+
+Q03 - LEFT JOIN
+Mục đích:
+Hiển thị toàn bộ khách hàng và số đơn hàng của từng khách hàng,
+kể cả khách hàng chưa từng đặt hàng.
+
+Yêu cầu:
+LEFT JOIN.
+
+------------------------------------------------------------
+
+Q04 - GROUP BY + COUNT
+Mục đích:
+Đếm số lượng sản phẩm trong từng danh mục.
+
+Yêu cầu:
+GROUP BY + COUNT.
+
+------------------------------------------------------------
+
+Q05 - GROUP BY + SUM
+Mục đích:
+Tính tổng doanh thu theo từng khách hàng hoặc từng tháng.
+
+Yêu cầu:
+GROUP BY + SUM.
+
+------------------------------------------------------------
+
+Q06 - AVG / MIN / MAX
+Mục đích:
+Thống kê giá sản phẩm:
+- Giá trung bình
+- Giá thấp nhất
+- Giá cao nhất
+
+Yêu cầu:
+AVG + MIN + MAX.
+
+------------------------------------------------------------
+
+Q07 - SUBQUERY
+Mục đích:
+Tìm các sản phẩm có giá cao hơn giá trung bình của toàn bộ sản phẩm.
+
+Yêu cầu:
+Subquery trong WHERE.
+
+------------------------------------------------------------
+
+Q08 - WINDOW FUNCTION
+Mục đích:
+Xếp hạng sản phẩm theo doanh thu.
+
+Yêu cầu:
+RANK() hoặc DENSE_RANK() OVER(...).
+
+------------------------------------------------------------
+
+Q09 - CASE WHEN
+Mục đích:
+Phân loại khách hàng theo tổng tiền đã mua.
+
+Ví dụ:
+- >= 10.000.000: VIP
+- >= 5.000.000: Regular
+- < 5.000.000: Normal
+
+Các ngưỡng chỉ là ví dụ, có thể điều chỉnh theo dữ liệu.
+
+------------------------------------------------------------
+
+Q10 - TÌM DỮ LIỆU KHÔNG TỒN TẠI
+Mục đích:
+Tìm khách hàng chưa từng đặt hàng.
+
+Có thể dùng:
+LEFT JOIN + IS NULL
+hoặc NOT EXISTS.
+
+------------------------------------------------------------
+
+Q11 - TÌM DỮ LIỆU TRÙNG LẶP
+Mục đích:
+Kiểm tra các email khách hàng bị trùng.
+
+Yêu cầu:
+GROUP BY + HAVING COUNT(*) > 1.
+
+------------------------------------------------------------
+
+Q12 - PAGINATION
+Mục đích:
+Hiển thị danh sách sản phẩm theo từng trang.
+
+Ví dụ:
+- Page 1: LIMIT 10 OFFSET 0
+- Page 2: LIMIT 10 OFFSET 10
+- Page 3: LIMIT 10 OFFSET 20
+
+------------------------------------------------------------
+
+Q13 - CTE
+Mục đích:
+Tính tổng doanh thu của từng khách hàng bằng CTE,
+sau đó lọc ra nhóm khách hàng có doanh thu cao.
+
+Yêu cầu:
+WITH ... AS (...)
+
+------------------------------------------------------------
+
+Q14 - NESTED QUERY PHỨC TẠP
+Mục đích:
+Tìm sản phẩm có doanh thu cao hơn doanh thu trung bình
+của các sản phẩm trong cùng category.
+
+Yêu cầu:
+Nested query + GROUP BY + JOIN/subquery.
+
+------------------------------------------------------------
+
+Q15 - QUERY TỔNG HỢP
+Mục đích:
+Tạo báo cáo doanh thu theo tháng.
+
+Có thể sử dụng:
+- CTE
+- GROUP BY
+- SUM
+- COUNT
+- ORDER BY
+
+============================================================
+13. BONUS: TỐI ƯU QUERY
+============================================================
+
+Sử dụng EXPLAIN ANALYZE.
+
+Quy trình:
+
+1. Chọn một query JOIN/GROUP BY có khả năng truy vấn nhiều dòng.
+2. Chạy EXPLAIN ANALYZE trước khi tạo index.
+3. Ghi lại execution time.
+4. Tạo index phù hợp.
+5. Chạy lại EXPLAIN ANALYZE.
+6. So sánh execution time.
+7. Giải thích sự thay đổi.
+
+Báo cáo cần có ảnh chụp kết quả EXPLAIN ANALYZE.
+
+============================================================
+14. BONUS: TRANSACTION
+============================================================
+
+Ví dụ nghiệp vụ:
+
+Khi khách hàng đặt hàng:
+1. Tạo order.
+2. Thêm order_item.
+3. Trừ tồn kho.
+4. Tạo payment.
+
+Nếu bất kỳ bước nào lỗi:
+ROLLBACK toàn bộ transaction.
+
+Nếu tất cả thành công:
+COMMIT.
+
+============================================================
+15. BONUS: AUDIT LOG
+============================================================
+
+Có thể thêm bảng:
+
+AUDIT_LOG
+
+Các cột:
+- audit_id
+- table_name
+- action
+- record_id
+- old_value
+- new_value
+- changed_at
+
+Mục đích:
+Theo dõi các thay đổi quan trọng trong database.
+
+============================================================
+16. BONUS: SOFT DELETE
+============================================================
+
+Có thể thêm:
+
+deleted_at
+
+cho PRODUCT hoặc CUSTOMER.
+
+Thay vì DELETE thật:
+- deleted_at = CURRENT_TIMESTAMP
+
+Các query thông thường chỉ lấy:
+WHERE deleted_at IS NULL
+
+============================================================
+17. CẤU TRÚC GITHUB REPOSITORY
+============================================================
+
+online-shopping-database/
+│
+├── README.md
+│
+├── erd/
+│   ├── online_shopping_erd.png
+│   └── online_shopping_erd.pdf
+│
+├── sql/
+│   ├── 01_create_database.sql
+│   ├── 02_create_tables.sql
+│   ├── 03_insert_data.sql
+│   ├── 04_constraints.sql
+│   ├── 05_indexes.sql
+│   ├── 06_views.sql
+│   ├── 07_functions_procedures.sql
+│   ├── 08_triggers.sql
+│   └── 09_bonus.sql
+│
+├── queries/
+│   ├── queries.sql
+│   └── query_results/
+│
+├── docs/
+│   └── report.pdf
+│
+└── demo/
+    └── demo_link.txt
+
+============================================================
+18. README.md DỰ KIẾN
+============================================================
+
+# Online Shopping Database
+
+## 1. Introduction
+Mô tả ngắn về hệ thống.
+
+## 2. Technologies
+- PostgreSQL
+- pgAdmin / DBeaver
+- dbdiagram.io
+- GitHub
+
+## 3. Database Structure
+Mô tả các bảng.
+
+## 4. ERD
+Đường dẫn tới file ERD.
+
+## 5. Installation
+Hướng dẫn chạy các file SQL theo thứ tự.
+
+## 6. Sample Queries
+Liệt kê một số query tiêu biểu.
+
+## 7. Features
+- PK/FK
+- Constraints
+- Index
+- View
+- Function/Procedure
+- Trigger
+
+## 8. Bonus
+- EXPLAIN ANALYZE
+- Transaction
+- Audit log
+- Soft delete
+
+## 9. Author
+Họ tên:
+Mã số học viên:
+Lớp:
+
+============================================================
+19. CẤU TRÚC BÁO CÁO 5-10 TRANG
+============================================================
+
+TRANG BÌA
+
+- Họ tên
+- Mã số học viên
+- Lớp
+- Tên bài tập
+- Đề tài: Hệ thống bán hàng online
+
+------------------------------------------------------------
+
+1. MỤC TIÊU VÀ PHẠM VI
+
+Mô tả mục tiêu của database và phạm vi hệ thống.
+
+------------------------------------------------------------
+
+2. PHÂN TÍCH YÊU CẦU
+
+Mô tả:
+- Customer
+- Category
+- Product
+- Inventory
+- Orders
+- Order Item
+- Payment
+
+------------------------------------------------------------
+
+3. THIẾT KẾ ERD
+
+Đưa ảnh ERD.
+
+Giải thích từng bảng và các mối quan hệ.
+
+------------------------------------------------------------
+
+4. CHUẨN HÓA
+
+Giải thích:
+- 1NF
+- 2NF
+- 3NF
+
+------------------------------------------------------------
+
+5. CÀI ĐẶT DATABASE
+
+Mô tả:
+- Tables
+- PK
+- FK
+- Constraints
+- Index
+- View
+- Procedure/Function
+- Trigger
+
+------------------------------------------------------------
+
+6. QUERY SQL
+
+Đưa 10+ query.
+
+Mỗi query gồm:
+- Mục đích
+- SQL
+- Ảnh kết quả
+
+------------------------------------------------------------
+
+7. TỐI ƯU
+
+Mô tả:
+- Index
+- EXPLAIN ANALYZE
+- So sánh trước/sau
+
+------------------------------------------------------------
+
+8. KHÓ KHĂN VÀ CÁCH GIẢI QUYẾT
+
+Nêu các vấn đề thực tế trong quá trình làm.
+
+------------------------------------------------------------
+
+9. LESSONS LEARNED
+
+Nêu những kiến thức rút ra:
+- Database design
+- Normalization
+- SQL
+- Query optimization
+- Git/GitHub
+
+------------------------------------------------------------
+
+10. LINK
+
+GitHub:
+[Điền link]
+
+Video demo:
+[Điền link]
+
+============================================================
+20. KỊCH BẢN VIDEO DEMO >= 2 PHÚT
+============================================================
+
+0:00 - 0:20
+Giới thiệu:
+- Họ tên
+- Mã số
+- Lớp
+- Đề tài
+
+0:20 - 0:45
+Giới thiệu ERD và các bảng chính.
+
+0:45 - 1:10
+Chạy SELECT + JOIN.
+
+1:10 - 1:30
+Chạy GROUP BY + aggregate.
+
+1:30 - 1:50
+Chạy subquery + window function.
+
+1:50 - 2:10
+Chạy CTE + pagination hoặc CASE WHEN.
+
+2:10+
+Nếu có bonus:
+- EXPLAIN ANALYZE
+- Transaction
+- Trigger
+- View
+
+============================================================
+21. THỨ TỰ THỰC HIỆN ĐỀ XUẤT
+============================================================
+
+Bước 1:
+Chốt PostgreSQL.
+
+Bước 2:
+Chốt 7 bảng:
+Customer
+Category
+Product
+Inventory
+Orders
+Order_Item
+Payment
+
+Bước 3:
+Vẽ ERD.
+
+Bước 4:
+Kiểm tra 1NF -> 2NF -> 3NF.
+
+Bước 5:
+Viết CREATE TABLE.
+
+Bước 6:
+Thêm constraints.
+
+Bước 7:
+Thêm dữ liệu mẫu.
+
+Bước 8:
+Kiểm tra toàn bộ FK và dữ liệu.
+
+Bước 9:
+Tạo index.
+
+Bước 10:
+Tạo view.
+
+Bước 11:
+Tạo function/procedure.
+
+Bước 12:
+Tạo trigger.
+
+Bước 13:
+Viết 10-15 query.
+
+Bước 14:
+Test toàn bộ query.
+
+Bước 15:
+EXPLAIN ANALYZE và tối ưu.
+
+Bước 16:
+Hoàn thiện README.
+
+Bước 17:
+Viết báo cáo.
+
+Bước 18:
+Quay video demo.
+
+Bước 19:
+Chạy lại toàn bộ script từ database trống.
+
+Bước 20:
+Push GitHub và kiểm tra repository trước khi nộp.
+
+============================================================
+22. CHECKLIST TRƯỚC KHI NỘP
+============================================================
+
+[ ] Có ERD.
+[ ] ERD có ít nhất 6-8 bảng.
+[ ] Có PK.
+[ ] Có FK.
+[ ] Có NOT NULL.
+[ ] Có UNIQUE.
+[ ] Có CHECK.
+[ ] Có DEFAULT.
+[ ] Giải thích 1NF.
+[ ] Giải thích 2NF.
+[ ] Giải thích 3NF.
+[ ] Mỗi bảng có 10-20 bản ghi mẫu.
+[ ] Có ít nhất 2 index.
+[ ] Có ít nhất 1 view.
+[ ] Có ít nhất 1 stored procedure/function.
+[ ] Có ít nhất 1 trigger.
+[ ] Có ít nhất 10 query.
+[ ] Có SELECT + WHERE + ORDER BY + LIMIT.
+[ ] Có INNER JOIN.
+[ ] Có LEFT JOIN.
+[ ] Có GROUP BY.
+[ ] Có aggregate function.
+[ ] Có subquery.
+[ ] Có window function.
+[ ] Có nested query.
+[ ] Có CASE WHEN.
+[ ] Có duplicate query.
+[ ] Có non-exist query.
+[ ] Có pagination.
+[ ] Có CTE.
+[ ] Mỗi query có mục đích.
+[ ] Mỗi query có ảnh kết quả.
+[ ] Có README.md.
+[ ] Có GitHub public repository.
+[ ] Commit rõ ràng.
+[ ] Báo cáo 5-10 trang.
+[ ] Có link video >= 2 phút.
+[ ] Script chạy từ đầu đến cuối không lỗi.
+[ ] Có thể trình bày và giải thích được toàn bộ database.
+
+============================================================
+23. GHI CHÚ
+============================================================
+
+Đây là bản thiết kế ban đầu của đề tài Hệ thống bán hàng online.
+Khi triển khai thực tế cần kiểm tra lại tên bảng, kiểu dữ liệu,
+constraint, nghiệp vụ và câu SQL trên PostgreSQL.
+
+Không nên copy nguyên database mẫu từ Internet.
+Cần tự thiết kế và hiểu được toàn bộ database để có thể giải thích
+khi demo hoặc bảo vệ bài.
+
+Ưu tiên hoàn thành:
+ERD -> Tables -> Data -> Index/View/Procedure/Trigger -> Queries
+trước khi làm các bonus.
+
+============================================================
+KẾT THÚC
+============================================================
