@@ -1,19 +1,8 @@
--- ============================================================
--- BÀI TẬP CÁ NHÂN: DATABASE DESIGN & SQL
--- ĐỀ TÀI: HỆ THỐNG BÁN HÀNG ONLINE (ONLINE SHOPPING SYSTEM)
--- FILE: queries/queries.sql
--- HỆ THỐNG: MySQL 8.0+ (InnoDB Engine)
--- MỤC ĐÍCH: Tập hợp 15 câu truy vấn SQL từ cơ bản đến nâng cao
--- ============================================================
+-- File: queries/queries.sql
 
 USE online_shopping_db;
 
--- ============================================================
--- Q01 - SELECT CƠ BẢN
--- Mục đích: Tìm các sản phẩm đang hoạt động kinh doanh (active),
---          sắp xếp theo giá giảm dần, lấy ra 10 sản phẩm đắt nhất.
--- Kỹ thuật: SELECT, WHERE, ORDER BY, LIMIT
--- ============================================================
+-- Q01: 10 sản phẩm đắt nhất đang active
 SELECT 
     product_id,
     product_name,
@@ -26,11 +15,7 @@ ORDER BY price DESC
 LIMIT 10;
 
 
--- ============================================================
--- Q02 - INNER JOIN
--- Mục đích: Hiển thị thông tin sản phẩm cùng tên danh mục tương ứng.
--- Kỹ thuật: INNER JOIN giữa PRODUCT và CATEGORY
--- ============================================================
+-- Q02: Sản phẩm kèm tên danh mục
 SELECT 
     p.product_id,
     p.product_name,
@@ -43,12 +28,7 @@ WHERE p.deleted_at IS NULL
 ORDER BY c.category_name ASC, p.price DESC;
 
 
--- ============================================================
--- Q03 - LEFT JOIN
--- Mục đích: Hiển thị toàn bộ khách hàng và tổng số đơn hàng đã đặt,
---          kể cả các khách hàng chưa từng đặt đơn nào (kết quả hiển thị 0).
--- Kỹ thuật: LEFT JOIN giữa CUSTOMER và ORDERS, GROUP BY, COUNT
--- ============================================================
+-- Q03: Tất cả khách hàng và số đơn đã đặt (kể cả chưa có đơn)
 SELECT 
     c.customer_id,
     c.full_name,
@@ -62,11 +42,7 @@ GROUP BY c.customer_id, c.full_name, c.email, c.phone
 ORDER BY total_orders DESC, c.customer_id ASC;
 
 
--- ============================================================
--- Q04 - GROUP BY + COUNT
--- Mục đích: Thống kê số lượng sản phẩm và lượng tồn kho trong từng danh mục.
--- Kỹ thuật: GROUP BY, COUNT, SUM
--- ============================================================
+-- Q04: Số sản phẩm và tổng tồn kho theo danh mục
 SELECT 
     c.category_id,
     c.category_name,
@@ -78,12 +54,7 @@ GROUP BY c.category_id, c.category_name
 ORDER BY total_products DESC, c.category_name ASC;
 
 
--- ============================================================
--- Q05 - GROUP BY + SUM
--- Mục đích: Thống kê tổng doanh thu thực tế thu được theo từng khách hàng
---          (chỉ tính các đơn hàng có trạng thái không bị hủy).
--- Kỹ thuật: GROUP BY, SUM, JOIN
--- ============================================================
+-- Q05: Tổng doanh thu theo khách hàng (bỏ qua đơn đã hủy)
 SELECT 
     c.customer_id,
     c.full_name,
@@ -97,11 +68,7 @@ GROUP BY c.customer_id, c.full_name, c.email
 ORDER BY total_revenue DESC;
 
 
--- ============================================================
--- Q06 - HÀM TỔNG HỢP: AVG / MIN / MAX
--- Mục đích: Thống kê giá bán sản phẩm: giá trung bình, giá rẻ nhất và đắt nhất.
--- Kỹ thuật: AVG, MIN, MAX, ROUND
--- ============================================================
+-- Q06: Giá TB, thấp nhất, cao nhất của sản phẩm active
 SELECT 
     ROUND(AVG(price), 0) AS average_price,
     MIN(price) AS min_price,
@@ -111,11 +78,7 @@ FROM product
 WHERE status = 'active' AND deleted_at IS NULL;
 
 
--- ============================================================
--- Q07 - SUBQUERY (TRUY VẤN CON)
--- Mục đích: Tìm các sản phẩm có giá bán cao hơn mức giá trung bình của toàn bộ cửa hàng.
--- Kỹ thuật: Subquery trong mệnh đề WHERE
--- ============================================================
+-- Q07: Sản phẩm có giá cao hơn trung bình toàn cửa hàng
 SELECT 
     product_id,
     product_name,
@@ -127,11 +90,7 @@ WHERE price > (SELECT AVG(price) FROM product WHERE deleted_at IS NULL)
 ORDER BY price DESC;
 
 
--- ============================================================
--- Q08 - WINDOW FUNCTION (MySQL 8.0+)
--- Mục đích: Xếp hạng sản phẩm theo tổng doanh thu bán được.
--- Kỹ thuật: DENSE_RANK() OVER (ORDER BY ... DESC)
--- ============================================================
+-- Q08: Xếp hạng sản phẩm theo doanh thu
 SELECT 
     p.product_id,
     p.product_name,
@@ -144,15 +103,7 @@ GROUP BY p.product_id, p.product_name
 ORDER BY revenue_rank ASC;
 
 
--- ============================================================
--- Q09 - MỆNH ĐỀ CASE WHEN (PHÂN LOẠI KHÁCH HÀNG)
--- Mục đích: Phân loại nhóm khách hàng dựa trên tổng số tiền đã mua sắm:
---          - VIP: >= 30.000.000 VNĐ
---          - Regular: >= 10.000.000 VNĐ
---          - Normal: < 10.000.000 VNĐ (có phát sinh đơn)
---          - New: Chưa có đơn hàng nào
--- Kỹ thuật: CASE WHEN, COALESCE, LEFT JOIN, GROUP BY
--- ============================================================
+-- Q09: Phân loại khách hàng theo tổng chi tiêu (VIP / Regular / Normal / New)
 SELECT 
     c.customer_id,
     c.full_name,
@@ -171,12 +122,7 @@ GROUP BY c.customer_id, c.full_name, c.email
 ORDER BY total_spending DESC;
 
 
--- ============================================================
--- Q10 - TÌM DỮ LIỆU KHÔNG TỒN TẠI (NON-EXISTENT DATA)
--- Mục đích: Tìm danh sách các khách hàng chưa từng phát sinh bất kỳ đơn hàng nào.
--- Kỹ thuật: Cách 1 dùng LEFT JOIN + IS NULL, Cách 2 dùng NOT EXISTS
--- ============================================================
--- Cách 1: LEFT JOIN kết hợp WHERE o.order_id IS NULL
+-- Q10: Khách hàng chưa từng đặt đơn
 SELECT 
     c.customer_id,
     c.full_name,
@@ -188,11 +134,7 @@ LEFT JOIN orders o ON c.customer_id = o.customer_id
 WHERE o.order_id IS NULL;
 
 
--- ============================================================
--- Q11 - TÌM DỮ LIỆU TRÙNG LẶP (DUPLICATE DATA CHECK)
--- Mục đích: Kiểm tra tính duy nhất, phát hiện các email hoặc số điện thoại bị trùng.
--- Kỹ thuật: GROUP BY + HAVING COUNT(*) > 1
--- ============================================================
+-- Q11: Kiểm tra email trùng
 SELECT 
     email,
     COUNT(*) AS occurrence_count
@@ -201,19 +143,13 @@ GROUP BY email
 HAVING COUNT(*) > 1;
 
 
--- ============================================================
--- Q12 - PAGINATION (PHÂN TRANG SẢN PHẨM)
--- Mục đích: Phân trang danh sách sản phẩm phục vụ hiển thị trên giao diện web thương mại điện tử.
--- Kỹ thuật: LIMIT và OFFSET
--- ============================================================
--- Trang 1 (10 sản phẩm đầu tiên)
+-- Q12: Phân trang sản phẩm (trang 1 và trang 2)
 SELECT product_id, product_name, price, stock_quantity
 FROM product
 WHERE status = 'active'
 ORDER BY product_id ASC
 LIMIT 10 OFFSET 0;
 
--- Trang 2 (10 sản phẩm tiếp theo)
 SELECT product_id, product_name, price, stock_quantity
 FROM product
 WHERE status = 'active'
@@ -221,12 +157,7 @@ ORDER BY product_id ASC
 LIMIT 10 OFFSET 10;
 
 
--- ============================================================
--- Q13 - CTE (COMMON TABLE EXPRESSION - MySQL 8.0+)
--- Mục đích: Sử dụng CTE để tính tổng doanh thu từng khách hàng,
---          sau đó lọc ra danh sách những khách hàng có doanh thu vượt trên 20 triệu.
--- Kỹ thuật: WITH ... AS (...)
--- ============================================================
+-- Q13: CTE - khách hàng có doanh thu trên 20 triệu
 WITH customer_revenue_cte AS (
     SELECT 
         c.customer_id,
@@ -239,23 +170,13 @@ WITH customer_revenue_cte AS (
     WHERE o.status <> 'cancelled'
     GROUP BY c.customer_id, c.full_name, c.email
 )
-SELECT 
-    customer_id,
-    full_name,
-    email,
-    order_count,
-    revenue
+SELECT customer_id, full_name, email, order_count, revenue
 FROM customer_revenue_cte
 WHERE revenue >= 20000000.00
 ORDER BY revenue DESC;
 
 
--- ============================================================
--- Q14 - NESTED QUERY PHỨC TẠP
--- Mục đích: Tìm các sản phẩm có doanh thu bán ra cao hơn mức doanh thu trung bình
---          của các sản phẩm trong cùng danh mục (category) đó.
--- Kỹ thuật: Correlated Subquery, CTE, GROUP BY
--- ============================================================
+-- Q14: Sản phẩm có doanh thu cao hơn mức TB trong cùng danh mục
 WITH product_revenue_cte AS (
     SELECT 
         p.product_id,
@@ -275,9 +196,7 @@ SELECT
 FROM product_revenue_cte pr
 INNER JOIN category c ON pr.category_id = c.category_id
 INNER JOIN (
-    SELECT 
-        category_id, 
-        AVG(product_revenue) AS avg_category_rev
+    SELECT category_id, AVG(product_revenue) AS avg_category_rev
     FROM product_revenue_cte
     GROUP BY category_id
 ) cat_avg ON pr.category_id = cat_avg.category_id
@@ -285,15 +204,7 @@ WHERE pr.product_revenue > cat_avg.avg_category_rev
 ORDER BY pr.product_revenue DESC;
 
 
--- ============================================================
--- Q15 - QUERY TỔNG HỢP (BÁO CÁO DOANH THU THEO THÁNG)
--- Mục đích: Tạo bảng báo cáo tình hình kinh doanh tổng thể theo tháng:
---          - Tổng số đơn đặt hàng
---          - Tổng số đơn đã thanh toán thành công
---          - Doanh thu thực tế (chỉ tính đơn đã hoàn tất thanh toán)
---          - Giá trị trung bình trên mỗi đơn hàng (AOV - Average Order Value)
--- Kỹ thuật: DATE_FORMAT, COUNT, SUM, ROUND, CASE WHEN, GROUP BY, ORDER BY
--- ============================================================
+-- Q15: Báo cáo doanh thu theo tháng (tổng đơn, đơn đã thanh toán, doanh thu thực, AOV)
 SELECT 
     DATE_FORMAT(o.order_date, '%Y-%m') AS report_month,
     COUNT(DISTINCT o.order_id) AS total_orders,

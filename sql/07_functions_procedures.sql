@@ -1,10 +1,4 @@
--- ============================================================
--- BÀI TẬP CÁ NHÂN: DATABASE DESIGN & SQL
--- ĐỀ TÀI: HỆ THỐNG BÁN HÀNG ONLINE (ONLINE SHOPPING SYSTEM)
--- FILE: 07_functions_procedures.sql
--- HỆ THỐNG: MySQL 8.0+ (InnoDB Engine)
--- MỤC ĐÍCH: Xây dựng Stored Procedures và Functions xử lý nghiệp vụ
--- ============================================================
+-- File: 07_functions_procedures.sql
 
 USE online_shopping_db;
 
@@ -14,20 +8,7 @@ DROP FUNCTION IF EXISTS fn_get_customer_total_spent;
 
 DELIMITER //
 
--- ------------------------------------------------------------
--- 1. PROCEDURE: sp_create_order
--- Nghiệp vụ: Tạo một đơn hàng mới an toàn toàn vẹn dữ liệu
--- Các bước xử lý:
---   1. Kiểm tra khách hàng tồn tại và còn hoạt động (active).
---   2. Kiểm tra sản phẩm tồn tại và đang kinh doanh.
---   3. Kiểm tra số lượng tồn kho có đáp ứng số lượng đặt mua hay không.
---   4. Bắt đầu TRANSACTION.
---   5. Khởi tạo bản ghi orders với thông tin giao hàng.
---   6. Thêm dòng chi tiết sản phẩm vào order_item.
---   7. Trừ số lượng tồn kho trong bảng inventory và product.
---   8. Khởi tạo bản ghi thanh toán tương ứng trong bảng payment.
---   9. Trả về p_order_id vừa tạo qua tham số OUT.
--- ------------------------------------------------------------
+-- Tạo đơn hàng mới, kiểm tra KH + sản phẩm + tồn kho trước khi insert
 CREATE PROCEDURE sp_create_order(
     IN p_customer_id INT,
     IN p_product_id INT,
@@ -44,14 +25,12 @@ BEGIN
     DECLARE v_product_status VARCHAR(20);
     DECLARE v_product_name VARCHAR(150);
 
-    -- Handler xử lý rollback tự động nếu xảy ra lỗi SQL bất ngờ
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
         RESIGNAL;
     END;
 
-    -- 1. Kiểm tra khách hàng
     SELECT status INTO v_customer_status
     FROM customer
     WHERE customer_id = p_customer_id AND deleted_at IS NULL;
@@ -66,13 +45,11 @@ BEGIN
             SET MESSAGE_TEXT = 'Tài khoản khách hàng không ở trạng thái active, không thể đặt hàng!';
     END IF;
 
-    -- 2. Kiểm tra số lượng mua hợp lệ
     IF p_quantity <= 0 THEN
         SIGNAL SQLSTATE '45000'
             SET MESSAGE_TEXT = 'Số lượng đặt mua phải lớn hơn 0!';
     END IF;
 
-    -- 3. Kiểm tra sản phẩm
     SELECT product_name, price, status INTO v_product_name, v_price, v_product_status
     FROM product
     WHERE product_id = p_product_id AND deleted_at IS NULL;
@@ -87,7 +64,6 @@ BEGIN
             SET MESSAGE_TEXT = 'Sản phẩm hiện không hoạt động kinh doanh!';
     END IF;
 
-    -- 4. Kiểm tra tồn kho
     SELECT quantity INTO v_stock
     FROM inventory
     WHERE product_id = p_product_id;
@@ -97,22 +73,18 @@ BEGIN
             SET MESSAGE_TEXT = 'Sản phẩm không đủ hàng trong kho!';
     END IF;
 
-    -- 5. Bắt đầu TRANSACTION tạo đơn
     START TRANSACTION;
 
     SET v_subtotal = v_price * p_quantity;
 
-    -- 6. Tạo đơn hàng mới
     INSERT INTO orders (customer_id, order_date, status, total_amount, shipping_address)
     VALUES (p_customer_id, NOW(), 'pending', v_subtotal, p_shipping_address);
 
     SET p_order_id = LAST_INSERT_ID();
 
-    -- 7. Thêm chi tiết đơn hàng
     INSERT INTO order_item (order_id, product_id, quantity, unit_price, subtotal)
     VALUES (p_order_id, p_product_id, p_quantity, v_price, v_subtotal);
 
-    -- 8. Cập nhật tồn kho
     UPDATE inventory
     SET quantity = quantity - p_quantity,
         updated_at = NOW()
@@ -123,7 +95,6 @@ BEGIN
         updated_at = NOW()
     WHERE product_id = p_product_id;
 
-    -- 9. Tạo giao dịch thanh toán khởi tạo
     INSERT INTO payment (order_id, payment_method, payment_status, amount, transaction_code)
     VALUES (
         p_order_id, 
@@ -137,10 +108,7 @@ BEGIN
 END //
 
 
--- ------------------------------------------------------------
--- 2. PROCEDURE: sp_cancel_order
--- Nghiệp vụ: Hủy đơn hàng và hoàn lại số lượng tồn kho tự động
--- ------------------------------------------------------------
+-- Hủy đơn hàng và hoàn lại tồn kho
 CREATE PROCEDURE sp_cancel_order(
     IN p_order_id INT,
     IN p_cancel_reason TEXT
@@ -151,7 +119,6 @@ BEGIN
     DECLARE v_prod_id INT;
     DECLARE v_qty INT;
 
-    -- Con trỏ duyệt qua các sản phẩm trong đơn để hoàn kho
     DECLARE cur_items CURSOR FOR 
         SELECT product_id, quantity FROM order_item WHERE order_id = p_order_id;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
@@ -162,7 +129,6 @@ BEGIN
         RESIGNAL;
     END;
 
-    -- 1. Kiểm tra đơn hàng tồn tại
     SELECT status INTO v_current_status
     FROM orders
     WHERE order_id = p_order_id;
@@ -184,12 +150,10 @@ BEGIN
 
     START TRANSACTION;
 
-    -- 2. Cập nhật trạng thái đơn hàng sang cancelled
     UPDATE orders
     SET status = 'cancelled'
     WHERE order_id = p_order_id;
 
-    -- 3. Mở con trỏ hoàn kho
     OPEN cur_items;
     read_loop: LOOP
         FETCH cur_items INTO v_prod_id, v_qty;
@@ -209,7 +173,6 @@ BEGIN
     END LOOP;
     CLOSE cur_items;
 
-    -- 4. Cập nhật trạng thái thanh toán
     UPDATE payment
     SET payment_status = CASE 
             WHEN payment_status = 'completed' THEN 'refunded'
@@ -221,10 +184,7 @@ BEGIN
 END //
 
 
--- ------------------------------------------------------------
--- 3. FUNCTION: fn_get_customer_total_spent
--- Nghiệp vụ: Tính tổng tiền khách hàng đã thanh toán thành công
--- ------------------------------------------------------------
+-- Tổng tiền đã thanh toán thành công của một khách hàng
 CREATE FUNCTION fn_get_customer_total_spent(p_customer_id INT)
 RETURNS DECIMAL(12, 2)
 DETERMINISTIC

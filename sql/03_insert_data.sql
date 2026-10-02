@@ -1,14 +1,7 @@
--- ============================================================
--- BÀI TẬP CÁ NHÂN: DATABASE DESIGN & SQL
--- ĐỀ TÀI: HỆ THỐNG BÁN HÀNG ONLINE (ONLINE SHOPPING SYSTEM)
--- FILE: 03_insert_data.sql
--- HỆ THỐNG: MySQL 8.0+ (InnoDB Engine)
--- MỤC ĐÍCH: Nạp dữ liệu mẫu (Seeding Data) chuẩn hóa và logic
--- ============================================================
+-- File: 03_insert_data.sql
 
 USE online_shopping_db;
 
--- Tắt kiểm tra khóa ngoại tạm thời để truncate bảng an toàn
 SET FOREIGN_KEY_CHECKS = 0;
 
 TRUNCATE TABLE payment;
@@ -21,9 +14,6 @@ TRUNCATE TABLE customer;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ------------------------------------------------------------
--- 1. INSERT DỮ LIỆU: category (10 bản ghi)
--- ------------------------------------------------------------
 INSERT INTO category (category_id, category_name, description, created_at) VALUES
 (1, 'Điện thoại & Tablet', 'Các dòng điện thoại thông minh, máy tính bảng chính hãng', '2024-01-01 08:00:00'),
 (2, 'Laptop & Máy tính', 'Máy tính xách tay văn phòng, đồ họa, gaming và linh kiện', '2024-01-01 08:00:00'),
@@ -36,9 +26,6 @@ INSERT INTO category (category_id, category_name, description, created_at) VALUE
 (9, 'Thiết bị mạng', 'Router Wi-Fi 6, Mesh Wi-Fi gia đình, bộ mở rộng sóng', '2024-01-05 13:00:00'),
 (10, 'Phần mềm & Tiện ích', 'Hệ điều hành Windows, Office 365, phần mềm diệt virus', '2024-01-05 14:00:00');
 
--- ------------------------------------------------------------
--- 2. INSERT DỮ LIỆU: product (20 bản ghi)
--- ------------------------------------------------------------
 INSERT INTO product (product_id, category_id, product_name, description, price, stock_quantity, status, created_at) VALUES
 (1, 1, 'iPhone 15 Pro Max 256GB', 'Titan Tự Nhiên, Chip Apple A17 Pro mạnh mẽ', 29990000.00, 45, 'active', '2024-01-10 09:00:00'),
 (2, 1, 'Samsung Galaxy S24 Ultra 512GB', 'Snapdragon 8 Gen 3 for Galaxy, Bút S-Pen tích hợp AI', 27500000.00, 30, 'active', '2024-01-10 09:30:00'),
@@ -61,9 +48,6 @@ INSERT INTO product (product_id, category_id, product_name, description, price, 
 (19, 7, 'Tay cầm chơi game Xbox Wireless Controller', 'Hỗ trợ Bluetooth Xbox Series X/S, PC Windows, Android/iOS', 1490000.00, 3, 'active', '2024-01-20 15:30:00'),
 (20, 9, 'Router Wi-Fi 6 Gaming ASUS RT-AX88U Pro', 'Tốc độ 6000Mbps, 2 cổng 2.5G WAN/LAN, RangeBoost Plus', 5990000.00, 2, 'active', '2024-01-21 16:00:00');
 
--- ------------------------------------------------------------
--- 3. INSERT DỮ LIỆU: inventory (20 bản ghi, quan hệ 1:1 với product)
--- ------------------------------------------------------------
 INSERT INTO inventory (inventory_id, product_id, quantity, updated_at) VALUES
 (1, 1, 45, '2024-01-21 17:00:00'),
 (2, 2, 30, '2024-01-21 17:00:00'),
@@ -82,14 +66,11 @@ INSERT INTO inventory (inventory_id, product_id, quantity, updated_at) VALUES
 (15, 15, 22, '2024-01-21 17:00:00'),
 (16, 16, 10, '2024-01-21 17:00:00'),
 (17, 17, 35, '2024-01-21 17:00:00'),
-(18, 18, 4, '2024-01-21 17:00:00'), -- Tồn kho thấp
-(19, 19, 3, '2024-01-21 17:00:00'), -- Tồn kho thấp
-(20, 20, 2, '2024-01-21 17:00:00'); -- Tồn kho thấp
+(18, 18, 4, '2024-01-21 17:00:00'),
+(19, 19, 3, '2024-01-21 17:00:00'),
+(20, 20, 2, '2024-01-21 17:00:00');
 
--- ------------------------------------------------------------
--- 4. INSERT DỮ LIỆU: customer (20 bản ghi)
--- Trong đó customer 18, 19, 20 không phát sinh đơn hàng
--- ------------------------------------------------------------
+-- customer 18, 19, 20 không có đơn hàng
 INSERT INTO customer (customer_id, full_name, email, phone, password_hash, created_at, status) VALUES
 (1, 'Nguyễn Văn An', 'an.nguyen@gmail.com', '0901234567', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9fV1', '2024-01-05 08:30:00', 'active'),
 (2, 'Trần Thị Bích', 'bich.tran@yahoo.com', '0912345678', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9fV2', '2024-01-06 09:15:00', 'active'),
@@ -108,14 +89,11 @@ INSERT INTO customer (customer_id, full_name, email, phone, password_hash, creat
 (15, 'Trịnh Thu Trang', 'trang.trinh@gmail.com', '0945432109', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9f15', '2024-01-19 16:20:00', 'active'),
 (16, 'Võ Tuấn Uy', 'uy.vo@gmail.com', '0954321098', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9f16', '2024-01-20 18:00:00', 'active'),
 (17, 'Phan Thanh Vân', 'van.phan@gmail.com', '0963210987', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9f17', '2024-01-21 08:15:00', 'active'),
-(18, 'Hồ Đăng Xuân', 'xuan.ho@gmail.com', '0972109876', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9f18', '2024-01-22 09:00:00', 'active'), -- Không có đơn hàng
-(19, 'Chu Ngọc Yến', 'yen.chu@gmail.com', '0981098765', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9f19', '2024-01-23 10:10:00', 'active'), -- Không có đơn hàng
-(20, 'Lâm Minh Trí', 'tri.lam@gmail.com', '0990987654', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9f20', '2024-01-24 11:20:00', 'inactive');-- Không có đơn hàng
+(18, 'Hồ Đăng Xuân', 'xuan.ho@gmail.com', '0972109876', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9f18', '2024-01-22 09:00:00', 'active'),
+(19, 'Chu Ngọc Yến', 'yen.chu@gmail.com', '0981098765', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9f19', '2024-01-23 10:10:00', 'active'),
+(20, 'Lâm Minh Trí', 'tri.lam@gmail.com', '0990987654', '$2b$12$eImiTXuWVxfM37uY4JANjOL1kU9f20', '2024-01-24 11:20:00', 'inactive');
 
--- ------------------------------------------------------------
--- 5. INSERT DỮ LIỆU: orders (20 bản ghi)
--- Thiết kế có khách hàng mua nhiều đơn (KH 1 có 3 đơn, KH 2 có 2 đơn, KH 3 có 2 đơn, KH 5 có 2 đơn)
--- ------------------------------------------------------------
+-- KH 1 có 3 đơn, KH 2 và 3 mỗi người 2 đơn
 INSERT INTO orders (order_id, customer_id, order_date, status, total_amount, shipping_address) VALUES
 (1, 1, '2024-02-01 10:00:00', 'delivered', 30880000.00, '123 Lê Lợi, Phường Bến Nghé, Quận 1, TP.HCM'),
 (2, 1, '2024-02-15 14:30:00', 'delivered', 5780000.00, '123 Lê Lợi, Phường Bến Nghé, Quận 1, TP.HCM'),
@@ -138,80 +116,37 @@ INSERT INTO orders (order_id, customer_id, order_date, status, total_amount, shi
 (19, 14, '2024-03-24 14:15:00', 'cancelled', 4990000.00, '18 Nguyễn Chí Thanh, Quận Đống Đa, Hà Nội'),
 (20, 15, '2024-03-25 17:00:00', 'pending', 21990000.00, '60 Hai Bà Trưng, Quận 3, TP.HCM');
 
--- ------------------------------------------------------------
--- 6. INSERT DỮ LIỆU: order_item (35 bản ghi)
--- Khớp chính xác với đơn giá, số lượng và tổng giá trị đơn hàng
--- ------------------------------------------------------------
 INSERT INTO order_item (order_item_id, order_id, product_id, quantity, unit_price, subtotal) VALUES
--- Order 1: iPhone 15 Pro Max (1) + Củ sạc Anker (1) = 29,990,000 + 890,000 = 30,880,000
+-- Order 1: iPhone 15 Pro Max + Củ sạc Anker = 30,880,000
 (1, 1, 1, 1, 29990000.00, 29990000.00),
 (2, 1, 12, 1, 890000.00, 890000.00),
-
--- Order 2: Củ sạc Anker (1) + Cáp Baseus (2) + Chuột MX Master 3S (2) = 5,780,000
+-- Order 2: Củ sạc Anker + 2 Cáp Baseus + 2 Chuột MX Master = 5,780,000
 (3, 2, 12, 1, 890000.00, 890000.00),
 (4, 2, 13, 2, 150000.00, 300000.00),
 (5, 2, 11, 2, 2295000.00, 4590000.00),
-
--- Order 3: Samsung S24 Ultra (1) = 27,500,000
+-- Order 3: Samsung S24 Ultra = 27,500,000
 (6, 3, 2, 1, 27500000.00, 27500000.00),
-
--- Order 4: MacBook Pro M3 Pro (1) + Cáp Baseus (1) = 50,140,000
+-- Order 4: MacBook Pro M3 Pro + Cáp Baseus = 50,140,000
 (7, 4, 4, 1, 49990000.00, 49990000.00),
 (8, 4, 13, 1, 150000.00, 150000.00),
-
--- Order 5: Dell XPS 13 Plus (1) = 38,500,000
 (9, 5, 5, 1, 38500000.00, 38500000.00),
-
--- Order 6: Sony WH-1000XM5 (1) = 7,990,000
 (10, 6, 7, 1, 7990000.00, 7990000.00),
-
--- Order 7: ASUS ROG Zephyrus G16 (1) = 45,000,000
 (11, 7, 6, 1, 45000000.00, 45000000.00),
-
--- Order 8: AirPods Pro 2 (1) = 5,690,000
 (12, 8, 8, 1, 5690000.00, 5690000.00),
-
--- Order 9: Marshall Stanmore III (1) = 8,990,000
 (13, 9, 9, 1, 8990000.00, 8990000.00),
-
--- Order 10: Phím Logitech MX (1) + Chuột MX Master 3S (1) = 5,780,000
 (14, 10, 10, 1, 3490000.00, 3490000.00),
 (15, 10, 11, 1, 2290000.00, 2290000.00),
-
--- Order 11: Apple Watch Ultra 2 (1) = 20,490,000
 (16, 11, 14, 1, 20490000.00, 20490000.00),
-
--- Order 12: Robot Roborock S8 Pro (1) = 24,990,000
 (17, 12, 16, 1, 24990000.00, 24990000.00),
-
--- Order 13: Nồi chiên Philips XXL (1) = 4,290,000
 (18, 13, 17, 1, 4290000.00, 4290000.00),
-
--- Order 14: Galaxy Watch 6 Classic (1) = 6,990,000
 (19, 14, 15, 1, 6990000.00, 6990000.00),
-
--- Order 15: Chuột MX Master 3S (1) = 2,290,000
 (20, 15, 11, 1, 2290000.00, 2290000.00),
-
--- Order 16: Phím MX Mechanical (1) = 3,490,000
 (21, 16, 10, 1, 3490000.00, 3490000.00),
-
--- Order 17: Router ASUS RT-AX88U Pro (1) = 5,990,000
 (22, 17, 20, 1, 5990000.00, 5990000.00),
-
--- Order 18: Tay cầm Xbox (1) = 1,490,000
 (23, 18, 19, 1, 1490000.00, 1490000.00),
-
--- Order 19: Phím cơ Razer Huntsman V3 (1) = 4,990,000
 (24, 19, 18, 1, 4990000.00, 4990000.00),
-
--- Order 20: Xiaomi 14 Ultra (1) = 21,990,000
 (25, 20, 3, 1, 21990000.00, 21990000.00);
 
--- ------------------------------------------------------------
--- 7. INSERT DỮ LIỆU: payment (20 bản ghi, quan hệ 1:1 với orders)
--- Đa dạng phương thức thanh toán: Credit Card, Bank Transfer, COD, E-Wallet
--- ------------------------------------------------------------
 INSERT INTO payment (payment_id, order_id, payment_method, payment_status, amount, paid_at, transaction_code) VALUES
 (1, 1, 'Credit Card', 'completed', 30880000.00, '2024-02-01 10:05:00', 'TXN-20240201-0001'),
 (2, 2, 'E-Wallet', 'completed', 5780000.00, '2024-02-15 14:32:00', 'TXN-20240215-0002'),

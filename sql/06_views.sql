@@ -1,18 +1,8 @@
--- ============================================================
--- BÀI TẬP CÁ NHÂN: DATABASE DESIGN & SQL
--- ĐỀ TÀI: HỆ THỐNG BÁN HÀNG ONLINE (ONLINE SHOPPING SYSTEM)
--- FILE: 06_views.sql
--- HỆ THỐNG: MySQL 8.0+ (InnoDB Engine)
--- MỤC ĐÍCH: Khởi tạo các Views tổng hợp dữ liệu phục vụ báo cáo và tra cứu
--- ============================================================
+-- File: 06_views.sql
 
 USE online_shopping_db;
 
--- ------------------------------------------------------------
--- 1. VIEW BẮT BUỘC: v_order_summary
--- Mục đích: Hiển thị tổng quan từng đơn hàng kèm thông tin khách hàng và thanh toán
--- Các cột: order_id, customer_name, order_date, order_status, total_amount, payment_status, payment_method
--- ------------------------------------------------------------
+-- tổng quan đơn hàng kèm thông tin khách hàng và thanh toán
 CREATE OR REPLACE VIEW v_order_summary AS
 SELECT 
     o.order_id,
@@ -32,10 +22,7 @@ INNER JOIN customer c ON o.customer_id = c.customer_id
 LEFT JOIN payment p ON o.order_id = p.order_id;
 
 
--- ------------------------------------------------------------
--- 2. VIEW BỔ SUNG: v_customer_spending_summary
--- Mục đích: Thống kê số lượng đơn và tổng chi tiêu của từng khách hàng kèm phân hạng
--- ------------------------------------------------------------
+-- tổng chi tiêu và hạng khách hàng
 CREATE OR REPLACE VIEW v_customer_spending_summary AS
 SELECT 
     c.customer_id,
@@ -55,10 +42,7 @@ LEFT JOIN orders o ON c.customer_id = o.customer_id AND o.status <> 'cancelled'
 GROUP BY c.customer_id, c.full_name, c.email, c.phone;
 
 
--- ------------------------------------------------------------
--- 3. VIEW BỔ SUNG: v_product_inventory_status
--- Mục đích: Báo cáo tình hình tồn kho và cảnh báo nhập hàng
--- ------------------------------------------------------------
+-- tình hình tồn kho theo sản phẩm
 CREATE OR REPLACE VIEW v_product_inventory_status AS
 SELECT 
     p.product_id,
